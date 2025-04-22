@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Memora{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/welcome.css') }}">
+    <script src='https://unpkg.com/tesseract.js@4.1.1/dist/tesseract.min.js'></script>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="welcomeOverlay" class="welcome-overlay">
+        <div class="welcome-content">
+            <div class="animated-title">
+                <span class="letter">m</span>
+                <span class="letter">e</span>
+                <span class="letter">m</span>
+                <span class="letter">o</span>
+                <span class="letter">r</span>
+                <span class="letter">a</span>
+            </div>
+            <div class="welcome-tagline">Journaling Made Smarter</div>
+        </div>
+    </div>
+    
+    <div id="contentContainer" class="content-container">
+        <script>
+            // Initialize theme and font size from localStorage
+            document.addEventListener('DOMContentLoaded', function() {
+                const currentTheme = localStorage.getItem('theme') || 'default';
+                const currentSize = localStorage.getItem('fontSize') || 'medium';
+                document.body.setAttribute('data-theme', currentTheme);
+                document.body.className = `font-${currentSize}`;
+            });
+        </script>
+        <div class="main-container">
+            <div class="sidebar" id="sidebar">
+                <button id="sidebarToggle" class="sidebar-toggle" aria-label="Toggle Sidebar">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h1 class="sidebar-title">Memora</h1>
+                <nav>
+                    <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                    <a href="/write" class="nav-item {% if request.path == '/write' %}active{% endif %}">
+                        <i class="fas fa-pen"></i> Write Journal
+                    </a>
+                    <a href="/journals" class="nav-item {% if request.path == '/journals' %}active{% endif %}">
+                        <i class="fas fa-book"></i> My Journals
+                    </a>
+                    <a href="/settings" class="nav-item {% if request.path == '/settings' %}active{% endif %}">
+                        <i class="fas fa-cog"></i> Settings
+                    </a>
+                </nav>
+            </div>
+            <div class="content">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+        <div id="notification" class="notification"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if this is a fresh page load or a tab switch
+            const hasVisited = localStorage.getItem('hasVisitedMemora');
+            const isPageRefresh = !document.hidden && (!hasVisited || performance.navigation.type === 1);
+            
+            if (isPageRefresh) {
+                // Show animation only on fresh visit or page refresh
+                setTimeout(() => {
+                    document.getElementById('welcomeOverlay').classList.add('fade-out');
+                    document.getElementById('contentContainer').classList.add('visible');
+                }, 2500);
+                localStorage.setItem('hasVisitedMemora', 'true');
+            } else {
+                // Skip animation for tab switches
+                document.getElementById('welcomeOverlay').classList.add('fade-out');
+                document.getElementById('contentContainer').classList.add('visible');
+            }
+
+            // Sidebar toggle functionality
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            const content = document.querySelector('.content');
+            
+            // Load saved state
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                content.classList.add('expanded');
+            }
+            
+            // Add click event listener
+            sidebarToggle?.addEventListener('click', function(e) {
+                e.preventDefault();
+                sidebar.classList.toggle('collapsed');
+                content.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+                window.dispatchEvent(new Event('resize'));
+            });
+        });
+    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
