@@ -1,0 +1,7 @@
+flask
+groq
+os
+re
+bs4
+requests
+gunicorn
