@@ -4,3 +4,4 @@ re
 bs4
 requests
 gunicorn
+ce
