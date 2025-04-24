@@ -1,0 +1,190 @@
+{% extends "layout.html" %}
+
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <h2>Settings</h2>
+    
+    <div class="settings-section">
+        <h3>App Settings</h3>
+        
+        <div class="setting-item">
+            <label>Theme:</label>
+            <select id="themeSelect" class="theme-select">
+                <option value="default">Default Blue</option>
+                <option value="purple">Royal Purple</option>
+                <option value="green">Forest Green</option>
+                <option value="dark">Dark Mode</option>
+                <option value="sunset">Sunset Orange</option>
+            </select>
+        </div>
+
+        <div class="setting-item">
+            <label>Font Size:</label>
+            <div class="font-size-controls">
+                <button class="font-size-btn" data-size="small">Small</button>
+                <button class="font-size-btn" data-size="medium">Medium</button>
+                <button class="font-size-btn" data-size="large">Large</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-section">
+        <h3>Ambience Settings</h3>
+        
+        <div class="setting-item">
+            <label>Background Music:</label>
+            <label class="switch">
+                <input type="checkbox" id="musicToggle">
+                <span class="slider round"></span>
+            </label>
+            <span class="setting-description">Play ambient music while writing</span>
+        </div>
+
+        <div class="setting-item" id="musicSettings" style="display: none;">
+            <label>Music Type:</label>
+            <select id="musicSelect" class="theme-select">
+                <option value="cafe">Café Ambience</option>
+                <option value="nature">Nature Sounds</option>
+                <option value="rain">Rain Sounds</option>
+                <option value="waves">Ocean Waves</option>
+            </select>
+            
+            <div class="setting-item">
+                <label>Volume:</label>
+                <input type="range" id="volumeControl" min="0" max="100" value="50">
+                <span class="volume-value">50%</span>
+            </div>
+            
+            <div class="test-audio">
+                <button id="testAudio" class="btn">Test Audio</button>
+                <span id="audioStatus"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Font size controls
+    const fontSizeButtons = document.querySelectorAll('.font-size-btn');
+    const currentSize = localStorage.getItem('fontSize') || 'medium';
+    
+    document.querySelector(`[data-size="${currentSize}"]`).classList.add('active');
+    
+    fontSizeButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const size = this.dataset.size;
+            document.body.className = `font-${size}`;
+            localStorage.setItem('fontSize', size);
+            
+            fontSizeButtons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+
+    // Theme selection
+    const themeSelect = document.getElementById('themeSelect');
+    const currentTheme = localStorage.getItem('theme') || 'default';
+    
+    themeSelect.value = currentTheme;
+    
+    themeSelect.addEventListener('change', function() {
+        const theme = this.value;
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    });
+
+    // Music settings
+    const musicToggle = document.getElementById('musicToggle');
+    const musicSettings = document.getElementById('musicSettings');
+    const musicSelect = document.getElementById('musicSelect');
+    const volumeControl = document.getElementById('volumeControl');
+    const volumeValue = document.querySelector('.volume-value');
+    const testButton = document.getElementById('testAudio');
+    const audioStatus = document.getElementById('audioStatus');
+    
+    let testPlayer = null;
+
+    // Load saved settings
+    const musicEnabled = localStorage.getItem('musicEnabled');
+    musicToggle.checked = musicEnabled === 'true';
+    musicSettings.style.display = musicEnabled === 'true' ? 'block' : 'none';
+    
+    musicSelect.value = localStorage.getItem('selectedMusic') || 'nature';
+    volumeControl.value = localStorage.getItem('musicVolume') || 50;
+    volumeValue.textContent = `${volumeControl.value}%`;
+
+    // Toggle music settings visibility
+    musicToggle.addEventListener('change', function() {
+        const isEnabled = this.checked;
+        localStorage.setItem('musicEnabled', isEnabled.toString());
+        musicSettings.style.display = isEnabled ? 'block' : 'none';
+        
+        // Stop any playing test audio
+        if (!isEnabled && testPlayer) {
+            testPlayer.pause();
+            testPlayer = null;
+            testButton.textContent = 'Test Audio';
+            audioStatus.textContent = '';
+        }
+
+        // Dispatch custom event to notify music state change
+        window.dispatchEvent(new CustomEvent('musicSettingsChanged', {
+            detail: { enabled: isEnabled }
+        }));
+    });
+
+    // Handle music selection
+    musicSelect.addEventListener('change', function() {
+        localStorage.setItem('selectedMusic', this.value);
+        if (testPlayer) {
+            testPlayer.pause();
+            testPlayer = null;
+        }
+    });
+
+    // Handle volume change
+    volumeControl.addEventListener('input', function() {
+        const volume = this.value;
+        localStorage.setItem('musicVolume', volume);
+        volumeValue.textContent = `${volume}%`;
+        if (testPlayer) {
+            testPlayer.volume = volume / 100;
+        }
+    });
+
+    // Test audio functionality
+    testButton.addEventListener('click', function() {
+        if (testPlayer) {
+            testPlayer.pause();
+            testPlayer = null;
+            testButton.textContent = 'Test Audio';
+            audioStatus.textContent = '';
+            return;
+        }
+
+        const selectedMusic = musicSelect.value;
+        audioStatus.textContent = 'Loading...';
+        
+        testPlayer = new Audio(`/static/music/${selectedMusic}.mp3`);
+        testPlayer.volume = volumeControl.value / 100;
+        
+        testPlayer.oncanplaythrough = () => {
+            audioStatus.textContent = 'Playing...';
+            testPlayer.play();
+            testButton.textContent = 'Stop Test';
+        };
+        
+        testPlayer.onerror = () => {
+            audioStatus.textContent = 'Error loading audio!';
+            testPlayer = null;
+            testButton.textContent = 'Test Audio';
+        };
+    });
+});
+</script>
+{% endblock %}
